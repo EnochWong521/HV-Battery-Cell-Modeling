@@ -33,7 +33,7 @@ class ReadData:
                 delta_x = self.time[index] - self.time[index - 1]
                 slope = delta_y / delta_x
                 # check if the point is an esr voltage drop
-                if slope < -5:
+                if slope < -1:
                     volt_one.append(self.voltage[index - 1])
                     volt_zero.append(volts)
                     soc_list.append(index)
@@ -47,11 +47,7 @@ class ReadData:
         for i, esr_diff in enumerate(esr_drop_list):
             esr = esr_diff / self.current
             esr_list.append(esr)
-        print(soc_list)
-        print(esr_list)
-        print(len(soc_list))
-        print(len(esr_list))
-        self.graph_data(soc_list, esr_list, "State of Charge", "ESR")
+        self.graph_data(soc_list, esr_list, "State of Charge", "Equivalent Series Resistance")
 
     # for testing purposes
     def print_slopes(self):
@@ -64,5 +60,6 @@ class ReadData:
                 slope_one = delta_y / delta_x
                 slope_list.append(slope_one)
         slope_list.sort()
-        print(slope_list)
-
+        for n in slope_list:
+            if slope_list.index(n) <= 30:
+                print(n)
