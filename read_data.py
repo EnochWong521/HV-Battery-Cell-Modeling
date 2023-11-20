@@ -53,6 +53,7 @@ class ReadData:
         print(len(esr_list))
         self.graph_data(soc_list, esr_list, "State of Charge", "ESR")
 
+    # for testing purposes
     def print_slopes(self):
         slope_list = []
         for index, volts in enumerate(self.voltage):
