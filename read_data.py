@@ -19,16 +19,19 @@ class ReadData:
     def print_slopes(self):
         slope_list = []
         for index, volts in enumerate(self.voltage):
-            # calculate slope
+            # calculate slopes
             if index != 0 and index != len(self.voltage) - 1:
                 delta_y = volts - self.voltage[index - 1]
                 delta_x = self.time[index] - self.time[index - 1]
                 slope_one = delta_y / delta_x
-                slope_list.append(slope_one)
-        slope_list.sort()
-        for n in slope_list:
-            if slope_list.index(n) <= 30:
-                print(n)
+                delta_y_two = self.voltage[index + 1] - volts
+                delta_x_two = self.time[index + 1] - self.time[index]
+                slope_two = delta_y_two / delta_x_two
+                if slope_one <= 0 and slope_two > 1:
+                    slope_list.append(slope_one)
+                    slope_list.append(slope_two)
+        print(slope_list)
+        print(len(slope_list))
 
     def graph_data(self, x_list, y_list, x_title, y_title):
         fig, ax = plt.subplots()
@@ -41,7 +44,7 @@ class ReadData:
 
     def find_voltage_drops(self):
         for index, volts in enumerate(self.voltage):
-            # calculate slope
+            # calculate slopes to find voltage drop points
             if index != 0 and index != len(self.voltage) - 1:
                 delta_y = volts - self.voltage[index - 1]
                 delta_x = self.time[index] - self.time[index - 1]
@@ -51,24 +54,45 @@ class ReadData:
                     self.volt_one.append(self.voltage[index - 1])
                     self.volt_two.append(volts)
                     self.v_drop_soc.append(self.all_soc[index])
-        self.v_drop_soc.pop(0)
+                elif slope <= 0:
+                    delta_y_two = self.voltage[index + 1] - volts
+                    delta_x_two = self.time[index + 1] - self.time[index]
+                    slope_two = delta_y_two / delta_x_two
+                    if slope_two > 1:
+                        self.volt_three.append(self.voltage[index])
+        # eliminate skewed values at the beginning and end of data set
+        self.volt_one.pop(0)
+        self.volt_one.pop(-1)
+        self.volt_two.pop(0)
         self.v_drop_soc.pop(-1)
 
     def esr_graph(self):
-        esr_drop_list = []
+        esr_drops = []
         esr_list = []
         self.find_voltage_drops()
+        new_soc = [s for s in self.v_drop_soc if self.v_drop_soc.index(s) != len(self.v_drop_soc) - 1]
         # compile a list of esr voltage drops
         for n, voltage in enumerate(self.volt_one):
-            if n != 0 and n != len(self.volt_two) - 1:
-                esr_drop = voltage - self.volt_two[n]
-                esr_drop_list.append(esr_drop)
-        for i, esr_diff in enumerate(esr_drop_list):
-            esr = esr_diff / self.current
+            esr_drop = voltage - self.volt_two[n]
+            esr = esr_drop / self.current
             esr_list.append(esr)
-        self.graph_data(self.v_drop_soc, esr_list, "State of Charge", "Equivalent Series Resistance")
+        self.graph_data(new_soc, esr_list, "State of Charge", "Equivalent Series Resistance")
 
-    # def resistor_one_graph(self):
+    def resistor_one_graph(self):
+        r_one_drop_list = []
+        for x, volt in enumerate(self.volt_two):
+            r_one_drop = volt - self.volt_three[x]
+            r_one = r_one_drop / self.current
+            r_one_drop_list.append(r_one)
+        self.graph_data(self.v_drop_soc, r_one_drop_list, "State of Charge", "Resistance 1")
+        
+    '''def capacitor_graph(self):'''
+        
+
+
+
+
+
 
 
 
