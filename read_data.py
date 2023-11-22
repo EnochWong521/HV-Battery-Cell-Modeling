@@ -35,7 +35,8 @@ class ReadData:
                     slope_list.append(slope_two)
         print(slope_list)
         print(len(slope_list))
-
+    
+    # general method for graphing data
     def graph_data(self, x_list, y_list, x_title, y_title):
         fig, ax = plt.subplots()
         plt.plot(x_list, y_list, color='blue', linestyle='-', linewidth=1)
@@ -45,6 +46,7 @@ class ReadData:
         ax.grid()
         fig.savefig(f"{self.current_range} {y_title} vs. {x_title} plot.png", dpi=600)
 
+    # find all voltage drop points due to esr and resistor two
     def find_voltage_drops(self):
         for index, volts in enumerate(self.voltage):
             # calculate slopes to find voltage drop points
@@ -57,7 +59,7 @@ class ReadData:
                     self.volt_one.append(self.voltage[index - 1])
                     self.volt_two.append(volts)
                     self.v_drop_soc.append(self.all_soc[index])
-                # check if the point is a voltage drop due to resistor one
+                # check if the point is a voltage drop due to resistor two
                 elif slope <= 0:
                     delta_y_two = self.voltage[index + 1] - volts
                     delta_x_two = self.time[index + 1] - self.time[index]
@@ -70,27 +72,31 @@ class ReadData:
         self.volt_two.pop(0)
         self.v_drop_soc.pop(-1)
 
+    # produce esr vs soc graph
     def esr_graph(self):
         new_soc = [soc for soc in self.v_drop_soc if self.v_drop_soc.index(soc) != len(self.v_drop_soc) - 1]
-        # calculate esr using ohm's law, and compile into a list
+        # calculate esr
         for n, voltage in enumerate(self.volt_one):
             esr_drop = voltage - self.volt_two[n]
             esr = esr_drop / self.current
             self.esr.append(esr)
         self.graph_data(new_soc, self.esr, "State of Charge", "Equivalent Series Resistance")
 
+    # produce resistor two vs soc graph
     def resistor_two_graph(self):
-        # calculate resistance of resistor 1 using ohm's law, and compile into a list
+        # calculate resistance of resistor 1
         for x, volt in enumerate(self.volt_two):
             r_two_drop = volt - self.volt_three[x]
             r_two = r_two_drop / self.current
             self.resistance_two.append(r_two)
         self.graph_data(self.v_drop_soc, self.resistance_two, "State of Charge", "Resistance 2")
 
+    # produce capacitance vs soc graph
     def capacitor_graph(self):
         index = 0
         half_lives = []
         capacitance_list = []
+        # find all half lives
         while index < len(self.volt_three):
             index_one = self.volt_two[index]
             index_two = self.volt_three[index]
@@ -101,11 +107,13 @@ class ReadData:
             else:
                 half_lives.append(self.time[int(half_life_index)])
             index += 1
+        # calculate capacitance
         for n, time in enumerate(half_lives):
             capacitance = time / (self.resistance_two[n] * math.log(2))
             capacitance_list.append(capacitance)
         self.graph_data(self.v_drop_soc, capacitance_list, "State of Charge", "Capacitance")
 
+    # produce all calculated graphs
     def produce_calc_graphs(self):
         self.find_voltage_drops()
         self.esr_graph()
