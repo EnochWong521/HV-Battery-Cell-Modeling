@@ -35,7 +35,7 @@ class ReadData:
                     slope_list.append(slope_two)
         print(slope_list)
         print(len(slope_list))
-    
+
     # general method for graphing data
     def graph_data(self, x_list, y_list, x_title, y_title):
         fig, ax = plt.subplots()
@@ -70,17 +70,19 @@ class ReadData:
         self.volt_one.pop(0)
         self.volt_one.pop(-1)
         self.volt_two.pop(0)
+        self.volt_two.pop(-1)
+        self.volt_three.pop(0)
+        self.v_drop_soc.pop(0)
         self.v_drop_soc.pop(-1)
 
     # produce esr vs soc graph
     def esr_graph(self):
-        new_soc = [soc for soc in self.v_drop_soc if self.v_drop_soc.index(soc) != len(self.v_drop_soc) - 1]
         # calculate esr
         for n, voltage in enumerate(self.volt_one):
             esr_drop = voltage - self.volt_two[n]
             esr = esr_drop / self.current
             self.esr.append(esr)
-        self.graph_data(new_soc, self.esr, "State of Charge", "Equivalent Series Resistance")
+        self.graph_data(self.v_drop_soc, self.esr, "State of Charge", "Equivalent Series Resistance")
 
     # produce resistor two vs soc graph
     def resistor_two_graph(self):
@@ -93,23 +95,25 @@ class ReadData:
 
     # produce capacitance vs soc graph
     def capacitor_graph(self):
-        index = 0
         half_lives = []
         capacitance_list = []
+        voltage_to_index = {v: index for index, v in enumerate(self.voltage)}
         # find all half lives
-        while index < len(self.volt_three):
-            index_one = self.volt_two[index]
-            index_two = self.volt_three[index]
-            half_life_index = (index_two - index_one) / 2
-            if half_life_index is float:
-                half_life_index += 0.5
-                half_lives.append(self.time[int(half_life_index)])
-            else:
-                half_lives.append(self.time[int(half_life_index)])
-            index += 1
+        for n, v_final in enumerate(self.volt_three):
+            v_initial = self.volt_two[n]
+            half_life_v = (v_final + v_initial) / 2
+            v_final_index = voltage_to_index.get(v_final)
+            v_initial_index = voltage_to_index.get(v_initial)
+            new_v_list = [volts for volts in self.voltage if
+                          v_initial_index < voltage_to_index.get(volts) < v_final_index]
+            new_half_life_v = min(new_v_list, key=lambda volt: abs(volt - half_life_v))
+            half_life_index = self.voltage.index(new_half_life_v)
+            half_life = self.time[half_life_index]
+            half_lives.append(half_life)
         # calculate capacitance
-        for n, time in enumerate(half_lives):
-            capacitance = time / (self.resistance_two[n] * math.log(2))
+        for i, time in enumerate(half_lives):
+            resistance = self.resistance_two[i]
+            capacitance = time / (resistance * math.log(2))
             capacitance_list.append(capacitance)
         self.graph_data(self.v_drop_soc, capacitance_list, "State of Charge", "Capacitance")
 
