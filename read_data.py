@@ -107,7 +107,7 @@ class ReadData:
             new_v_list = [volts for volts in self.voltage if
                           v_initial_index < voltage_to_index.get(volts) < v_final_index]
             new_half_life_v = min(new_v_list, key=lambda volt: abs(volt - half_life_v))
-            half_life_index = self.voltage.index(new_half_life_v)
+            half_life_index = voltage_to_index[new_half_life_v]
             half_life = self.time[half_life_index]
             half_lives.append(half_life)
         # calculate capacitance
