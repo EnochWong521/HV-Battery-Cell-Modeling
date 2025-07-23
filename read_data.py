@@ -4,10 +4,9 @@ import math
 
 
 class ReadData:
-    def __init__(self, file, initial_current, final_current, time, voltage, soc):
+    def __init__(self, file, current, time, voltage, soc):
         self.file = pandas.read_csv(file)
-        self.initial_current = int(initial_current)
-        self.final_current = int(final_current)
+        self.current = int(current)
         self.time = self.file[time].tolist()
         self.voltage = self.file[voltage].tolist()
         self.all_soc = self.file[soc].tolist()
@@ -34,15 +33,14 @@ class ReadData:
         print(slope_list)
 
     # general method for graphing data
-    def graph_data(self, x_list, y_list, x_title, y_title):
-        current_range = f"{self.initial_current}A to {self.final_current}A"
+    def graph_data(self, x_list, y_list, graph_title, x_title, y_title):
         fig, ax = plt.subplots()
         plt.plot(x_list, y_list, color='blue', linestyle='-', linewidth=1)
         ax.set_xlabel(x_title, fontsize=14)
         ax.set_ylabel(y_title, fontsize=14)
-        ax.set_title(f"{y_title} vs. {x_title} graph ({current_range})")
+        ax.set_title(graph_title)
         ax.grid()
-        fig.savefig(f"{current_range} {y_title} vs. {x_title} plot.png", dpi=600)
+        fig.savefig(f"{graph_title}.png", dpi=600)
 
     # find all voltage drop points due to esr and resistor two
     def find_voltage_drops(self):
@@ -71,26 +69,23 @@ class ReadData:
         self.volt_three.pop(0)
         self.v_drop_soc.pop(0)
         self.v_drop_soc.pop(-1)
-        print(self.volt_one)
-        print(self.volt_two)
-        print(self.volt_three)
 
     def esr_graph(self):
         # calculate esr
         for n, voltage in enumerate(self.volt_one):
             esr_drop = voltage - self.volt_two[n]
-            esr = esr_drop / (self.final_current - self.initial_current)
+            esr = esr_drop / self.current
             self.esr.append(esr)
-        self.graph_data(self.v_drop_soc, self.esr, "State of Charge", "Equivalent Series Resistance")
-
+        self.graph_data(self.v_drop_soc, self.esr, f"Equivalent Series Resistance vs. State of Charge graph ({self.current}A)", "State of Charge", "Equivalent Series Resistance")
     # produce resistor two vs soc graph
-    def resistor_two_graph(self):
+
+    def resistor_one_graph(self):
         # calculate resistance of resistor 1
         for x, volt in enumerate(self.volt_two):
             r_two_drop = volt - self.volt_three[x]
-            r_two = r_two_drop / (self.final_current - self.initial_current)
+            r_two = r_two_drop / self.current
             self.resistance_two.append(r_two)
-        self.graph_data(self.v_drop_soc, self.resistance_two, "State of Charge", "Resistance 2")
+        self.graph_data(self.v_drop_soc, self.resistance_two, f"Resistance 1 vs. State of Charge graph ({self.current}A)", "State of Charge", "Resistance 1")
 
     # produce capacitance vs soc graph
     def capacitor_graph(self):
@@ -107,18 +102,18 @@ class ReadData:
                           v_initial_index < voltage_to_index.get(volts) < v_final_index]
             new_half_life_v = min(new_v_list, key=lambda volt: abs(volt - half_life_v))
             half_life_index = voltage_to_index[new_half_life_v]
-            half_life = self.time[half_life_index]
+            half_life = self.time[half_life_index] - self.time[v_initial_index]
             half_lives.append(half_life)
         # calculate capacitance
         for i, time in enumerate(half_lives):
             resistance = self.resistance_two[i]
             capacitance = time / (resistance * math.log(2))
             capacitance_list.append(capacitance)
-        self.graph_data(self.v_drop_soc, capacitance_list, "State of Charge", "Capacitance")
+        self.graph_data(self.v_drop_soc, capacitance_list, f"Capacitance vs. State of Charge graph ({self.current}A)", "State of Charge", "Capacitance")
 
     # produce all calculated graphs
     def produce_calc_graphs(self):
         self.find_voltage_drops()
         self.esr_graph()
-        self.resistor_two_graph()
+        self.resistor_one_graph()
         self.capacitor_graph()
